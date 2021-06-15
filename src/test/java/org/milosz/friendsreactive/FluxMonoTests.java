@@ -4,14 +4,19 @@ import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+
+import static reactor.core.scheduler.Schedulers.parallel;
 
 /*
 * https://www.baeldung.com/reactor-core
 *   .subscribe(numbers::add)
-*
+*   .subscribe(new Subscriber<String>() {
 * */
 public class FluxMonoTests {
 
@@ -63,5 +68,42 @@ public class FluxMonoTests {
         });
     }
 
+    @Test
+    public void test3() {
+        Flux.just("milosz", "mazurek", "kieubasa", "sznurek")
+                .log()
+                .subscribeOn(parallel())
+                .subscribe(System.out::println);
+    }
+
+
+    @Test
+    public void testFluxWithRangeAndSheduller() {//TODO jesli nie zrobimy Thread.sleep() to nic nie wypisze bo  z powodu .subscribeOn(parallel())
+        //TODO strumien bedzie wyonywany w innym watku niz cala metoda. Watek metody (main) sie konczy i flux nie zdazy wypisac
+        Flux<Long> rangeFlux = Flux.range(1, 10)
+                .log()
+                .map(Long::new)
+       /*         .interval(Duration.ofMillis(200))*/
+                .subscribeOn(parallel());
+        rangeFlux.subscribe(System.out::println, System.out::println, () -> System.out.println("completed flow"), sub -> sub.request(5));
+    }
+
+    @Test
+    public void testFluxWithRangeAndSheduller2() throws InterruptedException{//TODO wersja ze sleep - tu wypisze wszystko oprawnie
+        Flux<Long> rangeFlux = Flux.range(1, 10)
+                .map(Long::new)
+                .interval(Duration.ofMillis(200))
+                .subscribeOn(parallel())//TODO praca zastowowac to i dac sleepa
+                .log();
+      /*  rangeFlux.subscribe(System.out::println, System.out::println, () -> System.out.println("completed flow"), sub -> sub.request(5));*/
+        rangeFlux.subscribe(System.out::println);
+        Thread.sleep(3000);
+    }
+
+    @Test
+    public void testFluxWithRange() {//TODO tu nie potrzeba sleepa bo wszystko idzie po klei w jednym watku
+        Flux<Integer> rangeFlux = Flux.range(1, 5);
+        rangeFlux.subscribe(System.out::println, System.out::println, () -> System.out.println("completed flow"), sub -> sub.request(3));
+    }
 
 }
